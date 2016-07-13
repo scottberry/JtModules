@@ -28,7 +28,7 @@ input:
 
 output:
 
-    - name: combinedimage
+    - name: combined_image
       type: IntensityImage
       key: combined_image.combined_image
       help: >
