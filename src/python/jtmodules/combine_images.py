@@ -5,9 +5,29 @@ import numpy as np
 VERSION = '0.1.0'
 
 
-def combine_images(image01, image02,multiplication_factor01,multiplication_factor02, plot=False):
-    ''' Combine two images together. Note that each image can be multiplied by a factor prior to combination. Default factor for both images is 1.
-        The output is a 16-bit image.
+def combine_images(image01, image02,multiplication_factor01,
+                   multiplication_factor02, plot=False):
+    ''' Combine two grayscale images together. The output is a 16-bit grayscale
+        image. Note that each image can be multiplied by a factor (positive 
+        integer only) prior to combination. Default factor for both images is 1.
+
+        Each image is first converted in uint32. This step is made to ensure
+        that the resulting intensities values can lie beyond the range of the
+        image (>65536 in the case of a 16-bit image).
+        
+        Each image is then individually multiplied by its respective
+        multiplication factor.
+        
+        The images are combined together and divided by the sum of the two 
+        multiplication factors. In consequence the range of the combined image 
+        is the same as the original images.
+
+        The combined image is finally converted to a uint16 (16-bit image).
+
+        For example, the combine_images module could be used to combine the
+        image where lipid droplets were imaged and the image where the cell 
+        outline was imaged. The output image can be used as a mask to properly 
+        segment adipocytes.
 
     Parameters
     ----------
@@ -46,7 +66,6 @@ def combine_images(image01, image02,multiplication_factor01,multiplication_facto
     logger.info('Second image will be multiplied by 1')
     
     if image01.shape != image02.shape:
-        raise ValueError('Images do not have the same dimension. Please selected images which have the same dimensions')
 
     if np.less(multiplication_factor01,1):
         raise ValueError('Multiplication factor must be a positive integer')
@@ -55,14 +74,20 @@ def combine_images(image01, image02,multiplication_factor01,multiplication_facto
         raise ValueError('Multiplication factor must be a positive integer')
     
     #Image Analysis
+    # Image are first converted to unint32 prior to multiplication
+    image01 = np.uint32(image01)
+    image02 = np.uint32(image02)
+    weighted_image01 = np.zeros_like(image01,dtype=np.uint32)
+    weighted_image02 = np.zeros_like(image02,dtype=np.uint32)  
     weighted_image01 = np.multiply(image01,multiplication_factor01)
     weighted_image02 = np.multiply(image02,multiplication_factor02)
 
-    # Could add dtype=np.uint16 below to force to output to be a 16-bit image.
-    added_images = np.zeros_like(weighted_image01) 
+    # Could add dtype=np.uint16 below to force the output to be a 16-bit image.
+    added_images = np.zeros_like(weighted_image01,dtype=np.uint32) 
     added_images = np.add(weighted_image01,weighted_image02)
     denominator = np.add(multiplication_factor01,multiplication_factor02)
     combined_image = np.divide(added_images,denominator)
+    combined_image = np.uint16(combined_image)
     outputs = {'combined_image': combined_image}
 
     #Plotting
