@@ -62,7 +62,8 @@ def main(input_label_image, input_image, threshold_correction_factors,
         for k in range(1, n_thresholds):
             print k
 
-            def _perform_watershed(int_img, mask, thresh, ws_img):
+            def _perform_watershed(int_img, label_img, thresh, ws_img):
+                mask = label_img > 0
                 threshold_mask = int_img > thresh
                 marker_mask = np.logical_or(mask, ~threshold_mask)
                 outlines = mh.labeled.bwperim(mask)
@@ -73,42 +74,47 @@ def main(input_label_image, input_image, threshold_correction_factors,
                 peaks = mh.dilate(ws_img)
                 peaks[marker_mask] = 0
                 se = np.ones((3, 3), bool)
-                seeds = mh.label(peaks, Bc=se)[0]
-                watershed_regions = mh.cwatershed(peaks, seeds)
+                ws_regions = mh.cwatershed(peaks, label_img)
 
-                actual_objects = watershed_regions.copy()
+                detected_objects = ws_regions.copy()
                 # Ensure objects are separated
-                watershed_lines = mh.thin(mh.labeled.borders(watershed_regions))
-                actual_objects[watershed_lines] = 0
-                # Remove "background" regions, i.e. watershed regions not
-                # overlapping any primary objects
-                correct_region_ids = actual_objects[mask]
-                lut = np.zeros(np.max(actual_objects)+1, actual_objects.dtype)
-                lut[correct_region_ids] = correct_region_ids
+                # ws_lines = mh.thin(mh.labeled.borders(ws_regions))
+                ws_lines = mh.labeled.borders(ws_regions)
+                detected_objects[ws_lines] = 0
+                # Remove "background" regions, i.e. set pixels in watershed
+                # regions that are not overlapping any primary objects to zero
+                new_label_img = mh.label(detected_objects > 0, Bc=se)[0]
+                new_true_labels = np.unique(new_label_img[mask])
+                new_true_background = np.unique(new_label_img[~mask])
+                lut = np.zeros(np.max(new_label_img)+1, new_label_img.dtype)
+                for l in new_true_labels:
+                    orig_labels = np.unique(label_img[new_label_img == l])
+                    orig_labels = orig_labels[orig_labels > 0]
+                    if orig_labels.size == 1:
+                        lut[l] = orig_labels[0]
+                actual_objects = lut[new_label_img]
                 import ipdb; ipdb.set_trace()
-                return lut[actual_objects]
+                return actual_objects
 
             # plt.imshow(gradient_image); plt.show()
             # import ipdb; ipdb.set_trace()
-            pre_secondary_object_mask = _perform_watershed(
-                input_image, primary_object_mask, thresholds[k],
+            pre_secondary_objects = _perform_watershed(
+                input_image, input_label_image, thresholds[k],
                 gradient_image
             )
             import ipdb;ipdb.set_trace()
 
-            secondary_object_mask = _perform_watershed(
-                input_image, pre_secondary_object_mask, thresholds[k],
+            secondary_objects = _perform_watershed(
+                input_image, pre_secondary_objects, thresholds[k],
                 np.invert(input_image)
             )
-            secondary_object_mask = mh.close_holes(secondary_object_mask)
+            secondary_objects = mh.close_holes(secondary_objects)
 
             # Label secondary objects according to primary objects
-            se = np.ones((3, 3), bool)
-            labels = mh.label(secondary_object_mask, Bc=se)[0]
             primary_object_ids = np.unique(input_label_image)[1:]
             for i in primary_object_ids:
                 mask = input_label_image == i
-                oid = labels[mask]
+                oid = secondary_objects[mask]
                 if oid.size == 0:
                     # Ensure that every primary object has a secondary object.
                     # In case no secondary object could be identified, use
