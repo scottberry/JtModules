@@ -1,11 +1,13 @@
-''' Combine module for TissueMAPS'''
+''' combine_images module for TissueMAPS'''
+ 
 import numpy as np
 
-VERSION = '0.0.1'
+VERSION = '0.1.0'
 
 
-def main(image01, image02,multiplication_factor01,multiplication_factor02, plot=False):
-    ''' Combine two images together. Note that each image can be multiplied by a factor prior to combination
+def combine_images(image01, image02,multiplication_factor01,multiplication_factor02, plot=False):
+    ''' Combine two images together. Note that each image can be multiplied by a factor prior to combination. Default factor for both images is 1.
+        The output is a 16-bit image.
 
     Parameters
     ----------
@@ -30,8 +32,12 @@ def main(image01, image02,multiplication_factor01,multiplication_factor02, plot=
     ------
     ValueError
         when the two images to combined do not have the same dimensions (NxM)
+
+    Author: Christophe Freyre
+    Contact: christophe.freyre (at) uzh (dot) ch 
+    Date: 12.07.2016
     '''
-    '''Error types'''
+    #Error types
     if multiplication_factor01 is None:
         multiplication_factor01 = 1
     logger.info('First image will be multiplied by 1')
@@ -41,17 +47,25 @@ def main(image01, image02,multiplication_factor01,multiplication_factor02, plot=
     
     if image01.shape != image02.shape:
         raise ValueError('Images do not have the same dimension. Please selected images which have the same dimensions')
+
+    if np.less(multiplication_factor01,1):
+        raise ValueError('Multiplication factor must be a positive integer')
+
+    if np.less(multiplication_factor02,1):
+        raise ValueError('Multiplication factor must be a positive integer')
     
-    '''Image Analysis'''
-    weightedImage01 = np.multiply(image01,multiplication_factor01)
-    weightedImage02 = np.multiply(image02,multiplication_factor02)
-    
-    addedImages = np.zeros_like(weightedImage01,dtype=none,order='K',subok=True)
-    addedImages = np.add(weightedImage01,weightedImage02)
-    combinedImage = np.add(weightedImage01,weightedImage02)
-    outputs = {'combinedimage': combinedimage}
-    
-    '''Plotting'''
+    #Image Analysis
+    weighted_image01 = np.multiply(image01,multiplication_factor01)
+    weighted_image02 = np.multiply(image02,multiplication_factor02)
+
+    # Could add dtype=np.uint16 below to force to output to be a 16-bit image.
+    added_images = np.zeros_like(weighted_image01) 
+    added_images = np.add(weighted_image01,weighted_image02)
+    denominator = np.add(multiplication_factor01,multiplication_factor02)
+    combined_image = np.divide(added_images,denominator)
+    outputs = {'combined_image': combined_image}
+
+    #Plotting
     if plot:
         from jtlib import plotting
 
@@ -68,7 +82,7 @@ def main(image01, image02,multiplication_factor01,multiplication_factor02, plot=
                     )
             ]
         ]
-        '''Figures'''
+        #Figures
         outputs['figure'] = plotting.create_figure(
                         plots, plot_is_image=[True, True, False],
                         title='''Combined image at pixel value %s
