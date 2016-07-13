@@ -14,12 +14,14 @@ input:
     - name: multiplication_factor01
       type: Scalar
       value:
-      help: Factor by which the first image should be multiplied
+      help: >
+        Factor by which the first image should be multiplied (positive integer)
 
     - name: multiplication_factor02
       type: Scalar
       value:
-      help: Factor by which the second image should be multiplied
+      help: >
+        Factor by which the second image should be multiplied (positive integer)
 
     - name: plot
       type: Plot
@@ -31,9 +33,8 @@ output:
     - name: combined_image
       type: IntensityImage
       key: combined_image.combined_image
-      help: >
-        Combined image from two different images
+      help: Combined image from two different images
 
     - name: figure
       type: Figure
-      help: Comparison of <i>mask</i> and <i>label_image</i>.
+      help: Comparison of original and combined images.
