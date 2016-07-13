@@ -94,10 +94,11 @@ def combine_images(image01, image02, multiplication_factor01=1,
     #Plotting
     if plot:
         from jtlib import plotting
+        clip_val = np.percentile(image01, 99.9)
         plots = [
-            plotting.create_image_plot(image01, 'ul'),
-            plotting.create_image_plot(image02, 'ur'),
-            plotting.create_image_plot(combined_image, 'll'),
+            plotting.create_intensity_image_plot(image01, 'ul', clip=True, clip_val),
+            plotting.create_intensity_image_plot(image02, 'ur', clip=True, clip_val),
+            plotting.create_intensity_image_plot(combined_image, 'll', clip=True),
         ]
         outputs['figure'] = plotting.create_figure(
             plots, title='Original and combined images'
