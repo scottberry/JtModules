@@ -48,27 +48,27 @@ input:
 
     - name: min_of_min
       type: Numeric
-      value:
+      value: 0
       help: >
-          Absolute limit for quantile-based image rescaling (lowest min.).
+          Absolute limit for quantile-based image rescaling (lowest min.). Enter ``0`` for ``NaN``.
 
     - name: max_of_min
       type: Numeric
-      value:
+      value: 120
       help: >
-          Absolute limit for quantile-based image rescaling (highest min.).
-
+          Absolute limit for quantile-based image rescaling (highest min.). Enter ``0`` for ``NaN``.
+          
     - name: min_of_max
       type: Numeric
-      value:
+      value: 500
       help: >
-          Absolute limit for quantile-based image rescaling (lowest max.).
+          Absolute limit for quantile-based image rescaling (lowest max.). Enter ``0`` for ``NaN``.
 
     - name: max_of_max
       type: Numeric
-      value:
+      value: 0
       help: >
-          Absolute limit for quantile-based image rescaling (highest max.).
+          Absolute limit for quantile-based image rescaling (highest max.). Enter ``0`` for ``NaN``.
 
     - name: detection_threshold
       type: Numeric
