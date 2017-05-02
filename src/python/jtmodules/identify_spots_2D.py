@@ -157,7 +157,12 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     The design of this module largely follows a IdentifyPrimLoG2 by
     Baris Sumengen
     '''
-
+    logger.debug('Parsing input variables')
+    min_min = min_of_min if min_of_min > 0 else np.nan
+    max_min = max_of_min if max_of_min > 0 else np.nan
+    min_max = min_of_max if min_of_max > 0 else np.nan
+    max_max = max_of_max if max_of_max > 0 else np.nan
+    
     logger.debug('Starting matlab')
     mb = matlab.engine.start_matlab()
 #    mb.addpath('~/matlab')
@@ -166,13 +171,17 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     logger.debug('Converting image to matlab format')
     image_mb = matlab.double(image.tolist())
 
+    logger.debug('Setting options, min_of_min = %s', min_min)
+    logger.debug('Setting options, max_of_min = %s', max_min)
+    logger.debug('Setting options, min_of_max = %s', min_max)
+    logger.debug('Setting options, max_of_max = %s', max_max)    
     options = {'ObSize': float(spot_size),
                'limQuant': matlab.double([rescale_quantile_min,
                                           rescale_quantile_max]),
-               'RescaleThr': matlab.double([min_of_min,
-                                            max_of_min,
-                                            min_of_max,
-                                            max_of_max]),
+               'RescaleThr': matlab.double([min_min,
+                                            max_min,
+                                            min_max,
+                                            max_max]),
                'ObjIntensityThr': matlab.uint16([]),
                'closeHoles': False,
                'ObjSizeThr': matlab.uint16([]),
