@@ -26,9 +26,9 @@ Output = collections.namedtuple('Output',
                                 ['spots', 'spots_deblend', 'figure'])
 
 
-def main(image, mask, spot_size=6, rescale_quantile_min=0.01,
-         rescale_quantile_max=0.99, min_of_min=np.nan, max_of_min=130,
-         min_of_max=np.nan, max_of_max=500, detection_threshold=0.01,
+def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
+         rescale_quantile_max=0.99, min_of_min=np.nan, max_of_min=120,
+         min_of_max=500, max_of_max=np.nan, detection_threshold=0.02,
          deblending_steps=2, plot=False):
     '''Detects spots as described in Battich et al., 2013. Converted to
     a jterator module from Cell Profiler by Scott Berry. Original CP
