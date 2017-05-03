@@ -1,5 +1,5 @@
 ---
-version: 0.0.1
+version: 0.1.0
 
 input:
 
@@ -57,7 +57,7 @@ input:
       value: 120
       help: >
           Absolute limit for quantile-based image rescaling (highest min.). Enter ``0`` for ``NaN``.
-          
+
     - name: min_of_max
       type: Numeric
       value: 500
@@ -91,6 +91,11 @@ input:
       type: Plot
       value: false
       help: Should a figure be created?
+
+    - name: plot_clip_value
+      type: Numeric
+      value: 150
+      help: Clip value for debug plots
 
 output:
 
