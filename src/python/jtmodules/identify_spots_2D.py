@@ -18,7 +18,7 @@ import collections
 import logging
 import matlab.engine
 
-VERSION = '0.0.1'
+VERSION = '0.1.0'
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ Output = collections.namedtuple('Output', ['spots', 'figure'])
 def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
          rescale_quantile_max=0.99, min_of_min=np.nan, max_of_min=120,
          min_of_max=500, max_of_max=np.nan, detection_threshold=0.02,
-         deblending_steps=20, plot=False):
+         deblending_steps=20, plot=False, plot_clip_value=150):
     '''Detects spots as described in Battich et al., 2013. Converted to
     a jterator module from Cell Profiler by Scott Berry. Original CP
     description below.
@@ -60,6 +60,8 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
         number of steps for deblending
     plot: bool, optional
         whether a plot should be generated (default: ``False``)
+    plot_clip_value: bool, optional
+        value to clip intensity image for plotting (default: ``150``)
 
     Returns
     -------
@@ -162,7 +164,7 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     max_min = max_of_min if max_of_min > 0 else np.nan
     min_max = min_of_max if min_of_max > 0 else np.nan
     max_max = max_of_max if max_of_max > 0 else np.nan
-    
+
     logger.debug('Starting matlab')
     mb = matlab.engine.start_matlab()
 #    mb.addpath('~/matlab')
@@ -174,7 +176,7 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     logger.debug('Setting options, min_of_min = %s', min_min)
     logger.debug('Setting options, max_of_min = %s', max_min)
     logger.debug('Setting options, min_of_max = %s', min_max)
-    logger.debug('Setting options, max_of_max = %s', max_max)    
+    logger.debug('Setting options, max_of_max = %s', max_max)
     options = {'ObSize': float(spot_size),
                'limQuant': matlab.double([rescale_quantile_min,
                                           rescale_quantile_max]),
@@ -236,25 +238,43 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     logger.info('%d blobs detected after deblending', n_post)
 
     if plot:
-        logger.info('create plot')
         from jtlib import plotting
-        outlines = mh.labeled.bwperim(spots > 0)
-        outlines_deblend = mh.labeled.bwperim(spots_deblend > 0)
+
+        logger.debug('dilate deblended spots')
+        spots_deblend_expanded = mh.dilate(
+            A=spots_deblend > 0,
+            Bc=mh.disk(radius=4, dim=2))
+        outlines_deblend = mh.labeled.bwperim(spots_deblend_expanded > 0)
+
+        logger.debug('generate colorscales')
+        colorscale_pre = plotting.create_colorscale(
+            'Spectral', n=n_pre, permute=True, add_background=True
+        )
+        colorscale_post = plotting.create_colorscale(
+            'Spectral', n=n_post, permute=True, add_background=True
+        )
+
+        logger.debug('create subplots')
         plots = [
             plotting.create_intensity_image_plot(
-                image, 'ul', clip=True
+                image, 'ul',
+                clip=True, clip_value=plot_clip_value
+            ),
+            plotting.create_mask_image_plot(
+                spots, 'ur', colorscale=colorscale_pre
             ),
             plotting.create_intensity_overlay_image_plot(
-                image, outlines, 'll'
+                image, outlines_deblend, 'll',
+                clip=True, clip_value=plot_clip_value
             ),
-            plotting.create_intensity_overlay_image_plot(
-                image, outlines_deblend, 'lr'
-            )
+            plotting.create_mask_image_plot(
+                spots_deblend, 'lr', colorscale=colorscale_post
+            ),
         ]
+        logger.info('create plot')
         figure = plotting.create_figure(
             plots,
-            title='left = before deblending ({0} spots), right = after \
-             deblending ({1} spots)'.format(n_pre, n_post)
+            title='''left = before deblending ({0} spots), right = after deblending ({1} spots)'''.format(n_pre, n_post)
         )
     else:
         figure = str()
