@@ -1,5 +1,5 @@
 ---
-version: 0.1.0
+version: 0.1.1
 
 input:
 
@@ -103,6 +103,11 @@ output:
       type: LabelImage
       key: identify_spots_2D.spots
       help: Labelled centroids of spots identified in the image.
+
+    - name: expanded_spots
+      type: LabelImage
+      key: identify_spots_2D.expanded_spots
+      help: Labelled centroids of spots identified in the image, expanded.
 
     - name: figure
       type: Figure
