@@ -243,7 +243,7 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
         logger.debug('dilate deblended spots')
         spots_deblend_expanded = mh.dilate(
             A=spots_deblend > 0,
-            Bc=mh.disk(radius=4, dim=2))
+            Bc=mh.disk(radius=3, dim=2))
         outlines_deblend = mh.labeled.bwperim(spots_deblend_expanded > 0)
 
         logger.debug('generate colorscales')
@@ -279,4 +279,4 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     else:
         figure = str()
 
-    return(Output(spots, figure))
+    return(Output(spots_deblend, figure))
