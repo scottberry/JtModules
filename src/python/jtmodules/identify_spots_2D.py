@@ -18,11 +18,11 @@ import collections
 import logging
 import matlab.engine
 
-VERSION = '0.1.1'
+VERSION = '0.1.2'
 
 logger = logging.getLogger(__name__)
 
-Output = collections.namedtuple('Output', ['spots', 'expanded_spots', 'figure'])
+Output = collections.namedtuple('Output', ['spots', 'expanded_spots_mask', 'figure'])
 
 
 def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
@@ -237,16 +237,16 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     logger.info('%d blobs detected before deblending', n_pre)
     logger.info('%d blobs detected after deblending', n_post)
 
-    logger.debug('dilate deblended spots')
-    spots_deblend_expanded = mh.dilate(
-        A=spots_deblend,
+    logger.debug('expand deblended spots')
+    spots_deblend_expanded_mask = mh.dilate(
+        A=spots_deblend > 0,
         Bc=mh.disk(radius=4, dim=2))
-    spots_deblend_expanded = spots_deblend_expanded.astype(np.int32)
+    spots_deblend_expanded_mask = spots_deblend_expanded_mask.astype(np.bool)
 
     if plot:
         from jtlib import plotting
         logger.debug('generate spot outlines')
-        outlines_deblend = mh.labeled.bwperim(spots_deblend_expanded > 0)
+        outlines_deblend = mh.labeled.bwperim(spots_deblend_expanded_mask > 0)
 
         logger.debug('generate colorscales')
         colorscale_pre = plotting.create_colorscale(
@@ -281,4 +281,4 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     else:
         figure = str()
 
-    return(Output(spots_deblend, spots_deblend_expanded, figure))
+    return(Output(spots_deblend, spots_deblend_expanded_mask, figure))
