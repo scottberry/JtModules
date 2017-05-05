@@ -159,24 +159,23 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     The design of this module largely follows a IdentifyPrimLoG2 by
     Baris Sumengen
     '''
-    logger.debug('Parsing input variables')
+    logger.debug('parsing input variables')
     min_min = min_of_min if min_of_min > 0 else np.nan
     max_min = max_of_min if max_of_min > 0 else np.nan
     min_max = min_of_max if min_of_max > 0 else np.nan
     max_max = max_of_max if max_of_max > 0 else np.nan
 
-    logger.debug('Starting matlab')
+    logger.debug('starting matlab')
     mb = matlab.engine.start_matlab()
 #    mb.addpath('~/matlab')
     mb.addpath('/home/tissuemaps/jtlibrary/src/matlab/cpsub/', nargout=0)
 
-    logger.debug('Converting image to matlab format')
-    image_mb = matlab.double(image.tolist())
+    logger.debug('converting image numpy array to list')
+    image_mb = image.tolist()
+    logger.debug('converting image list to matlab format')
+    image_mb = matlab.double(image_mb)
 
-    logger.debug('Setting options, min_of_min = %s', min_min)
-    logger.debug('Setting options, max_of_min = %s', max_min)
-    logger.debug('Setting options, min_of_max = %s', min_max)
-    logger.debug('Setting options, max_of_max = %s', max_max)
+    logger.debug('setting options')
     options = {'ObSize': float(spot_size),
                'limQuant': matlab.double([rescale_quantile_min,
                                           rescale_quantile_max]),
@@ -193,7 +192,7 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
                'doLog': 0,
                'detectBias': matlab.uint16([])}
 
-    logger.info('Detecting spots by rescaling/thresholding')
+    logger.info('detecting spots by rescaling/thresholding')
     log_filter = mb.fspecialCP3D('2D LoG', options['ObSize'])
     spots_mb = mb.ObjByFilter(image_mb,
                               log_filter,
@@ -207,11 +206,11 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
                               nargout=3)
     spots_pre = mb.double(mb.labelmatrix(spots_mb[1]))
 
-    logger.info('Deblending spots using source extractor')
+    logger.info('deblending spots using source extractor')
     spots_deblend_mb = mb.SourceExtractorDeblend(
         image_mb, spots_mb[1], spots_mb[2], options, nargout=1)
 
-    logger.debug('Converting matlab to (contiguous) numpy array')
+    logger.debug('converting matlab to (contiguous) numpy array')
     # Note that there are some strange conversions between numpy and
     # matlab in terms of array byte order. Mahotas requires C arrays.
     spots = (np.array(
@@ -223,7 +222,7 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
         spots_deblend_mb.size, order='F'))
     spots_deblend = np.ascontiguousarray(spots_deblend, dtype=np.int32)
 
-    logger.debug('Masking spots outside cells')
+    logger.debug('masking spots outside cells')
     spots[mask == 0] = 0
     mh.labeled.relabel(spots, inplace=True)
     spots_deblend[mask == 0] = 0
@@ -232,12 +231,13 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
     # Exit matlab
     mb.quit()
 
+    logger.debug('counting spots')
     n_pre = spots.max()
     n_post = spots_deblend.max()
     logger.info('%d blobs detected before deblending', n_pre)
     logger.info('%d blobs detected after deblending', n_post)
 
-    logger.debug('expand deblended spots')
+    logger.debug('expanding deblended spots for viewer')
     spots_deblend_expanded_mask = mh.dilate(
         A=spots_deblend > 0,
         Bc=mh.disk(radius=4, dim=2))
@@ -245,7 +245,7 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
 
     if plot:
         from jtlib import plotting
-        logger.debug('generate spot outlines')
+        logger.debug('generating spot outlines')
         outlines_deblend = mh.labeled.bwperim(spots_deblend_expanded_mask > 0)
 
         logger.debug('generate colorscales')
