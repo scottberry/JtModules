@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-'''Jterator module for plotting a LabelImage
+'''Jterator module for applying a mask to a label image
 '''
 import logging
 import collections
