@@ -147,18 +147,23 @@ classdef identify_spots_2D
             log_filter = cpsub.fspecialCP3D('2D LoG',Options.ObSize);
 
             % Peform initial segmentation of spots
-            [ObjCount{1} SegmentationCC{1} FiltImage] = cpsub.ObjByFilter(double(image),log_filter,Options.ObjThr,Options.limQuant,Options.RescaleThr,Options.ObjIntensityThr,true,[],Options.DetectBias)
+            [ObjCount{1} SegmentationCC{1} FiltImage] = cpsub.ObjByFilter( ...
+                double(image), log_filter, ...
+                Options.ObjThr, Options.limQuant, Options.RescaleThr, ...
+                Options.ObjIntensityThr, true, [], Options.DetectBias)
             spots = int32(labelmatrix(SegmentationCC{1}));
 
             % Deblend spots
             if deblending_steps > 0
-                spots_deblend = int32(cpsub.SourceExtractorDeblend(double(image),SegmentationCC{1},FiltImage,Options));
+                spots_deblend = int32(cpsub.SourceExtractorDeblend( ...
+                    double(image), SegmentationCC{1}, FiltImage, Options));
             end
 
             if plot
-                plots = {jtlib.plotting.create_intensity_image_plot(image, 'ul')
-                jtlib.plotting.create_label_image_plot(spots, 'ur'),
-                jtlib.plotting.create_label_image_plot(spots, 'ul')};
+                plots = { ...
+                jtlib.plotting.create_intensity_image_plot(image, 'ul'), ...
+                jtlib.plotting.create_mask_image_plot(spots_deblend, 'ur'), ...
+                jtlib.plotting.create_mask_image_plot(spots, 'll')};
                 figure = jtlib.plotting.create_figure(plots);
             else
                 figure = '';
