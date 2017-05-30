@@ -17,6 +17,7 @@ import numpy as np
 import mahotas as mh
 import collections
 import logging
+from jtlib import filter
 
 VERSION = '0.4.0'
 
@@ -56,11 +57,12 @@ def main(image, mask, threshold=5, min_area=5, plot=False):
     '''
 
     logger.info('detect blobs above threshold {0}'.format(threshold))
+
     detection, blobs = sep.extract(
-        image.astype('float'), threshold, mask=np.invert(mask>0),
+        image.astype('float'), threshold, mask=np.invert(mask > 0),
         minarea=min_area, segmentation_map=True,
         deblend_nthresh=500, deblend_cont=0,
-        filter_kernel=None, clean=False
+        filter_kernel=filter.log_2d(5, 4.0 / 3), clean=False
     )
 
     n = len(detection)
