@@ -21,7 +21,7 @@ classdef identify_spots_2D
 
     methods (Static)
 
-        function [spots, spots_deblend, figure] = main(image, mask, spot_size, rescale_quantile_min, rescale_quantile_max, min_of_min, max_of_min, min_of_max, max_of_max, detection_threshold, deblending_steps, plot, plot_clip_value)
+        function [spots, spots_deblend, figure] = main(image, spot_size, rescale_quantile_min, rescale_quantile_max, min_of_min, max_of_min, min_of_max, max_of_max, detection_threshold, deblending_steps, plot, plot_clip_value)
 
 %            import jtlib.plotting;
 %            import cpsub.*;
@@ -59,6 +59,9 @@ classdef identify_spots_2D
             if deblending_steps > 0
                 spots_deblend = int32(cpsub.SourceExtractorDeblend(double(image),SegmentationCC{1},FiltImage,Options));
             end
+
+            spots = flipud(spots);
+            spots_deblend = flipud(spots_deblend);
 
             output_image = image;
 

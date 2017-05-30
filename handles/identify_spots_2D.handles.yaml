@@ -9,13 +9,6 @@ input:
       help: >
         Grayscale image in which spots should be detected.
 
-    - name: mask
-      type: LabelImage
-      key:
-      help: >
-          Binary or labeled image of objects in which spots should be
-          detected (e.g. cell segmentation image).
-
     - name: spot_size
       type: Numeric
       value: 5
