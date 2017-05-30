@@ -60,9 +60,6 @@ classdef identify_spots_2D
                 spots_deblend = int32(cpsub.SourceExtractorDeblend(double(image),SegmentationCC{1},FiltImage,Options));
             end
 
-            spots = flipud(spots);
-            spots_deblend = flipud(spots_deblend);
-
             output_image = image;
 
             if nargin < 2
