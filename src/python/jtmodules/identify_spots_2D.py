@@ -14,11 +14,14 @@
 '''Jterator module for detection of spots in images.'''
 import collections
 import logging
+
+from pkg_resources import resource_filename
+
 import matlab.engine
 import numpy as np
 import mahotas as mh
 
-VERSION = '0.1.2'
+VERSION = '0.1.3'
 
 logger = logging.getLogger(__name__)
 
@@ -167,8 +170,8 @@ def main(image, mask, spot_size=5, rescale_quantile_min=0.01,
 
     logger.debug('starting matlab')
     mb = matlab.engine.start_matlab()
-#    mb.addpath('~/matlab')
-    mb.addpath('/home/tissuemaps/jtlibrary/src/matlab/cpsub/', nargout=0)
+    cpsub_matlab_src_path = resource_filename('jtlibrary', 'src/matlab/cpsub')
+    mb.addpath(cpsub_matlab_src_path, nargout=0)
 
     logger.debug('converting image numpy array to list')
     image_mb = image.tolist()
