@@ -50,16 +50,8 @@ except ImportError:
 
 import setuptools
 
-def find_scripts():
-    return [s for s in setuptools.findall('bin/')
-            if os.path.splitext(s)[1] != '.pyc']
-
 def get_version():
-    src_path = os.path.join(
-        os.path.abspath(os.path.dirname(__file__)),
-        'src', 'python'
-    )
-    sys.path = [src_path] + sys.path
+    sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
     import jtmodules
     return jtmodules.__version__
 
@@ -84,8 +76,7 @@ setuptools.setup(
         'Operating System :: MacOS'
     ],
     scripts=[],
-    packages = setuptools.find_packages('jtmodules'),
-    package_dir={'': 'src/python'},
+    packages = ['jtmodules'],
     include_package_data=True,
     install_requires=[
         'numpy>=1.10.1',
@@ -96,8 +87,6 @@ setuptools.setup(
         'opencv-contrib-python>=3.2',
         'pytest>=2.8.2',
         'scipy>=0.16.0',
-        'sep>=1.0.0',
-        'tox>=2.3.1',
         'jtlibrary>=0.2.0'
     ]
 )
