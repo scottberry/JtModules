@@ -1,5 +1,5 @@
 ---
-version: 0.0.1
+version: 0.0.2
 
 input:
 
@@ -13,24 +13,20 @@ input:
       type: Numeric
       value: 5
       help: >
-          This value corresponds to the approximate size of you spots. It should
-          be their diameter in pixels. The LoG will use a mask of this size to
-          enhance radial signal of that size. Note that in practice the specific
-          value does not affect the number of spots, if spots are bright (eg.
-          pixel size 5 or 6).
+          Approximate size of spots (diameter in pixels). A Laplacian of
+          Gaussian filter of this size will be used to enhance the radial
+          signal of that size.
 
     - name: rescale_quantiles
       type: Sequence
       value: [0.01, 0.99]
       help: >
           Prior to spot detection the images are rescaled according to their
-          intensity. Since the specific value of minimal and maximal intensities
-          are frequently not robust across multiple images, intensity quantile are
-          used instead. [0 1] would correspond to using the single dimmest pixel
-          for minimal intensity and the single brightest pixel for maximal
-          intensity. [0.01 0.90] would mean that the minimum intensity is derived
-          from the pixel, which is the 1% brightest pixel of all and that the
-          maximum intensity is derived from the pixel, which is the 90% brightest
+          intensity using quantiles. [0 1] would correspond to using the
+          single dimmest pixel for minimal intensity and the single brightest
+          pixel for maximal intensity. [0.01 0.90] would mean that the minimum
+          intensity is derived from the 1% brightest pixel and that the
+          maximum intensity is derived from the 90% brightest
           pixel.
 
     - name: rescale_thresholds
@@ -43,23 +39,23 @@ input:
           HighestPossibleGreyscaleValueForImageMinimum
           LowestPossibleGreyscaleValueForImageMaximum
           HighestPossibleGreyscaleValueForImageMaximum].
-          To ignore individual values, place 0.
+          To ignore an individual value, and use per-image quantile
+          rescaling, place 0.
 
     - name: detection_threshold
       type: Numeric
       value: 0.02
       help: >
-          Threshold for spot detection intensity in rescaled image (default:
-          0.02). The higher the value, the more stringent spot detection is.
+          Threshold for spot detection intensity in rescaled image on a scale
+          of 0-1 (default: 0.02). Spots in the rescaled / LoG-filtered image
+          with intensity below this value will not be detected.
 
     - name: deblending_steps
       type: Numeric
       value: 30
       help: >
-          The amount of deblending steps, which are done. The higher it is the less
-          likely it is that two adjacent spots are not separated. The default of 30
-          works very well (and we did not see improvement on our images with higher
-          values). Note that the number of deblending steps is the main determinant
+          The number of deblending steps used to separate adjacent spots.
+          Note that the number of deblending steps is the main determinant
           of computational time for this module.
 
     - name: plot
@@ -67,24 +63,21 @@ input:
       value: false
       help: Should a figure be created?
 
-    - name: plot_clip_value
-      type: Numeric
-      value: 150
-      help: Clip value for debug plots
-
 output:
 
     - name: spots
       type: LabelImage
       key: identify_spots_2D.spots
-      help: Labelled centroids of spots identified in the image.
+      help: >
+          Labelled spots from segmentation before deblending. Use as a
+          mask for measuring spot intensity.
 
     - name: spots_deblend
       type: LabelImage
       key: identify_spots_2D.spots_deblend
       help: >
           Labelled centroids of spots identified in the image after
-          deblending.
+          deblending. Use to count spots.
 
     - name: figure
       type: Figure

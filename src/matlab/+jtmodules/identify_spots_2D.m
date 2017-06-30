@@ -85,6 +85,11 @@
 % values). Note that the number of deblending steps is the main determinant
 % of computational time for this module.
 %
+% EDIT 30/6/17 (Scott Berry)
+%
+% NOTE: THE FOLLOWING TWO OPTIONS ARE NO LONGER EXPOSED IN THE INTERFACE
+% ======================================================================
+%
 % WHAT IS THE MINIMAL INTENSITY OF A PIXEL WITHIN A SPOT?
 % Minimal greyscale value of a pixel, which a pixel has to have in order to
 % be recognized to be within a spot. Opitonal argument to make spot
@@ -113,7 +118,7 @@
 classdef identify_spots_2D
     properties (Constant = true)
 
-        VERSION = '0.0.1'
+        VERSION = '0.0.2'
 
     end
 
@@ -122,7 +127,7 @@ classdef identify_spots_2D
         function [spots, spots_deblend, figure] = main(image, spot_size, ...
          rescale_quantiles, rescale_thresholds, ...
          detection_threshold, deblending_steps, ...
-         plot, plot_clip_value)
+         plot)
 
             % Reset omitted thresholds in +/-Inf
             if rescale_thresholds(1) == 0; rescale_thresholds(1) = -Inf; end;
