@@ -25,6 +25,23 @@ Output = collections.namedtuple('Output', ['masked_image', 'figure'])
 
 
 def main(objects, mask, plot=False):
+    '''Applys a mask to BinaryImage or LabelImage,
+    to remove objects outside the mask.
+
+    Parameters
+    ----------
+    objects: numpy.ndarray[numpy.int32]
+        label image or binary image containing objects to be masked
+    mask: numpy.ndarray[numpy.int32]
+        label image or binary image that should be used as a mask
+    plot: bool, optional
+        whether a plot should be generated (default: ``False``)
+
+    Returns
+    -------
+    jtmodules.apply_mask.Output[Union[numpy.ndarray, str]]
+
+    '''
 
     objects[mask == 0] = 0
     mh.labeled.relabel(objects, inplace=True)
