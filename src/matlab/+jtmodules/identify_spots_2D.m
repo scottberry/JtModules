@@ -158,10 +158,17 @@ classdef identify_spots_2D
                 Options.ObjIntensityThr, true, [], Options.DetectBias)
             spots = int32(labelmatrix(SegmentationCC{1}));
 
+            % Security check, if conversion is correct
+            if max(spots(:)) ~= ObjCount{1}
+                error(['Image processing was canceled in identify_spots_2D because conversion of segmentation format failed.'])
+            end
+
             % Deblend spots
-            if deblending_steps > 0
+            if deblending_steps > 0 && ObjCount{1} > 0
                 spots_deblend = int32(cpsub.SourceExtractorDeblend( ...
                     double(image), SegmentationCC{1}, FiltImage, Options));
+            else
+                spots_deblend = zeros(size(image),'int32')
             end
 
             if plot
