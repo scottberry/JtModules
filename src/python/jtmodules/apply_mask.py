@@ -16,6 +16,7 @@
 import logging
 import collections
 import mahotas as mh
+import numpy as np
 
 VERSION = '0.1.0'
 
@@ -25,26 +26,9 @@ Output = collections.namedtuple('Output', ['masked_image', 'figure'])
 
 
 def main(objects, mask, plot=False):
-    '''Applys a mask to BinaryImage or LabelImage,
-    to remove objects outside the mask.
 
-    Parameters
-    ----------
-    objects: numpy.ndarray[numpy.int32]
-        label image or binary image containing objects to be masked
-    mask: numpy.ndarray[numpy.int32]
-        label image or binary image that should be used as a mask
-    plot: bool, optional
-        whether a plot should be generated (default: ``False``)
-
-    Returns
-    -------
-    jtmodules.apply_mask.Output[Union[numpy.ndarray, str]]
-
-    '''
-
-    objects[mask == 0] = 0
-    mh.labeled.relabel(objects, inplace=True)
+    mask_objects = np.copy(objects)
+    mask_objects[mask == 0] = 0
 
     if plot:
         logger.info('create plot')
@@ -57,7 +41,7 @@ def main(objects, mask, plot=False):
                 mask, 'ul', colorscale=colorscale
             ),
             plotting.create_mask_image_plot(
-                objects, 'ur', colorscale=colorscale
+                mask_objects, 'ur', colorscale=colorscale
             )
         ]
         figure = plotting.create_figure(
@@ -69,4 +53,4 @@ def main(objects, mask, plot=False):
     else:
         figure = str()
 
-    return Output(objects, figure)
+    return Output(mask_objects, figure)

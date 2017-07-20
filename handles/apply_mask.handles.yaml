@@ -22,8 +22,8 @@ output:
 
     - name: masked_image
       type: LabelImage
-      key: objects.masked_image
-      help: Objects masked and relabeled
+      key: masked_objects.masked_image
+      help: Objects masked
 
     - name: figure
       type: Figure
