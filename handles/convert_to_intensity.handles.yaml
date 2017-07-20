@@ -1,0 +1,25 @@
+---
+version: 0.0.1
+
+input:
+
+  - name: label_image
+    type: LabelImage
+    key:
+    help: Image that should be projected.
+
+  - name: plot
+    type: Boolean
+    value: false
+    help: Do you want to plot the result?
+
+output:
+
+  - name: intensity_image
+    type: IntensityImage
+    key: convert_to_intensity.intensity_image
+    help: Intensity image.
+
+  - name: figure
+    type: Figure
+    help: Shows the intensity image.

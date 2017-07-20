@@ -1,0 +1,31 @@
+---
+version: 0.1.0
+
+input:
+
+    - name: objects
+      type: LabelImage
+      key:
+      help: Image containing objects to be masked
+
+    - name: mask
+      type: MaskImage
+      key:
+      help: Mask to apply to objects
+
+    - name: plot
+      type: Plot
+      value: false
+      help: Should a figure be created?
+
+output:
+
+    - name: masked_image
+      type: LabelImage
+      key: masked_objects.masked_image
+      help: Objects masked
+
+    - name: figure
+      type: Figure
+
+
