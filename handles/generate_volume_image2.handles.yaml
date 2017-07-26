@@ -1,0 +1,96 @@
+---
+version: 0.2.0
+
+input:
+
+  - name: image
+    type: IntensityImage
+    key:
+    help: >
+      Grayscale image in which beads should be detected (3D).
+
+  - name: mask
+    type: LabelImage
+    key:
+    help: >
+      Binary or labeled image of cell segmentation (2D).
+
+  - name: threshold
+    type: Numeric
+    value: 150
+    help: >
+      Threshold for detection of bead intensity.
+
+  - name: bead_size
+    type: Numeric
+    value: 3
+    help: >
+      Bead size in pixels
+
+  - name: filter_type
+    type: Character
+    value: log_2d
+    options:
+      - log_2d
+      - log_3d
+    help: Filter to be applied to emphasise beads for detection.
+
+  - name: bead_localisation
+    type: Character
+    value: max
+    options:
+      - max
+      - centroid
+    help: Method to determine 3D coordinates of bead centre.
+
+  - name: minimum_bead_intensity
+    type: Numeric
+    value: 150
+    help: >
+      Minimum intensity of an identified bead centre (only applied for
+      bead_localisation = max)
+
+  - name: outlier_detection
+    type: Boolean
+    value: true
+    help: >
+      Whether spatial outlier beads should be removed.
+
+  - name: outlier_tolerance
+    type: Numeric
+    value: 4
+    help: >
+      Maximum number of z-steps between neighboring beads
+
+  - name: close_surface
+    type: Boolean
+    value: false
+    help: >
+      Whether the interpolated surface should be morphologically closed.
+
+  - name: close_disc_size
+    type: Numeric
+    value: 8
+    help: >
+      Size in pixels of the disc used to morphologically close the interpolated surface
+
+  - name: plot
+    type: Plot
+    value: false
+    help: Should a figure be created?
+
+output:
+
+  - name: volume_image
+    type: IntensityImage
+    key: generate_volume_image.volume_image
+    help: >
+      Image in which intensity represents the height (in z-slices)
+      above the surface of the slide each point is.
+
+  - name: figure
+    type: Figure
+    help: >
+      "Maximum intensity projection" of beads and computed "slide
+      surface". Also shows final volume image"
+
