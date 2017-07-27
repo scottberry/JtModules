@@ -143,7 +143,7 @@ def main(image, mask, threshold=150, bead_size=3,
     '''
 
     n_slices = image.shape[-1]
-    logger.debug('input image has size %d in last dimension', n_slices)
+    logger.debug('input image has z-dimension %d', n_slices)
 
     # Remove high intensity pixels
     detect_image = image.copy()
@@ -152,24 +152,24 @@ def main(image, mask, threshold=150, bead_size=3,
 
     # Perform LoG filtering in 3D to emphasise beads
     if filter_type == 'log_2d':
-        logger.debug('using stacked 2D LoG filter to detect beads')
+        logger.info('using stacked 2D LoG filter to detect beads')
         f = -1 * log_2d(size=bead_size, sigma=float(bead_size - 1) / 3)
         filt = np.stack([f for _ in range(2 * bead_size)], axis=2)
 
     elif filter_type == 'log_3d':
-        logger.debug('using 3D LoG filter to detect beads')
+        logger.info('using 3D LoG filter to detect beads')
         filt = -1 * log_3d(bead_size, (float(bead_size - 1) / 3,
                                        float(bead_size - 1) / 3,
                                        4 * float(bead_size - 1) / 3))
     else:
-        logger.debug('using unfiltered image to detect beads')
+        logger.info('using unfiltered image to detect beads')
 
     if filter_type == 'log_2d' or filter_type == 'log_3d':
-        logger.debug('applying kernel')
+        logger.debug('convolve image with filter kernel')
         detect_image = mh.convolve(detect_image.astype(float), filt)
         detect_image[detect_image < 0] = 0
 
-    logger.debug('labelling and filtering beads')
+    logger.debug('label and filter beads by size')
     labeled_beads, n_labels = mh.label(detect_image > threshold)
     logger.info('detected %d beads', n_labels)
 
@@ -180,11 +180,11 @@ def main(image, mask, threshold=150, bead_size=3,
     logger.info('%d beads remain after filtering', np.max(labeled_beads))
 
     if bead_localisation == 'centroids':
-        logger.debug('localising beads in 3D by centroid')
+        logger.debug('localise beads in 3D by centroid')
         bead_coords = mh.center_of_mass(labeled_beads, labels=labeled_beads)
         bead_coords = bead_coords[1:, :].astype(int)
     elif bead_localisation == 'max':
-        logger.debug('localising beads in 3D by maximum intensity')
+        logger.debug('localise beads in 3D by maximum intensity')
         bead_coords = []
         bboxes = mh.labeled.bbox(labeled_beads)
         for bead in range(np.max(labeled_beads)):
@@ -207,7 +207,7 @@ def main(image, mask, threshold=150, bead_size=3,
         logger.error('unidentified bead localisation method')
 
     if outlier_detection:
-        logger.debug('updating outliers using local distance detection' +
+        logger.debug('update outliers using local distance detection' +
                      ' and median replacement')
         # use KDTree to efficiently get the nearest neighbours
         neighbours_xy = KDTree(bead_coords[:, 0:2])
@@ -227,24 +227,22 @@ def main(image, mask, threshold=150, bead_size=3,
             if max_z > max_other + outlier_tolerance:
                 bead_coords[bead, 2] = np.median([k1[2], k2[2], k3[2]])
 
-    logger.info('converting %d bead vertices to image', bead_coords.shape[0])
+    logger.debug('convert %d bead vertices to image', bead_coords.shape[0])
     coord_image = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint16)
     for i in range(bead_coords.shape[0]):
         coord_image[bead_coords[i][0], bead_coords[i][1]] = bead_coords[i][2]
 
-    logger.info('masking beads inside cells')
+    logger.debug('mask beads inside cells')
     slide = np.copy(coord_image)
-    logger.debug('slide shape %s', slide.shape)
-    logger.debug('mask shape %s', mask.shape)
     slide[mask > 0] = 0
 
-    logger.debug('determining surface of slide')
+    logger.debug('determine coordinates of slide surface')
     slide_coordinates = array_to_coordinate_list(slide)
     bottom_surface = fit_plane(subsample_coordinate_list(
         slide_coordinates, 2000)
     )
 
-    logger.info('subtracting slide surface to get absolute bead coordinates')
+    logger.debug('subtract slide surface to get absolute bead coordinates')
     bead_coords_abs = bead_coords.copy()
     for i in range(bead_coords_abs.shape[0]):
         bead_height = (
@@ -257,7 +255,7 @@ def main(image, mask, threshold=150, bead_size=3,
         )
         bead_coords_abs[i, 2] = bead_height if bead_height > 0 else 0
 
-    logger.info('interpolating cell surface')
+    logger.info('interpolate cell surface')
     volume_image = interpolate_surface(
         coords=bead_coords_abs,
         output_shape=np.shape(image[:, :, 1]),
@@ -267,13 +265,13 @@ def main(image, mask, threshold=150, bead_size=3,
     volume_image = volume_image.astype(image.dtype)
 
     if (close_surface is True):
-        logger.info('morphological closing of cell surface')
+        logger.info('morphological close cell surface')
         volume_image = mh.close(
             volume_image,
             Bc=mh.disk(close_disc_size)
         )
 
-    logger.debug('setting regions outside of mask to zero')
+    logger.debug('set regions outside mask to zero')
     volume_image[mask == 0] = 0
 
     if plot:
@@ -283,9 +281,7 @@ def main(image, mask, threshold=150, bead_size=3,
             for iy in range(slide.shape[1]):
                 bottom_surface_image[ix, iy] = plane(
                     ix, iy, bottom_surface.x)
-        outlines = mh.morph.dilate(
-            mh.labeled.bwperim(np.max(labeled_beads, axis=2) > 0)
-        )
+        outlines = mh.labeled.bwperim(np.max(labeled_beads, axis=2) > 0)
         logger.info('create plot')
         from jtlib import plotting
         plots = [
