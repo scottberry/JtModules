@@ -190,8 +190,7 @@ def main(image, mask, threshold=150, bead_size=3,
         for bead in range(np.max(labeled_beads)):
             x_min, x_max, y_min, y_max, z_min, z_max = bboxes[bead]
             label_image = labeled_beads[x_min:x_max, y_min:y_max, z_min:z_max]
-            bounded = image[x_min:x_max, y_min:y_max, z_min:z_max]
-            bounded = np.copy(bounded)
+            bounded = np.copy(image[x_min:x_max, y_min:y_max, z_min:z_max])
             bounded[label_image != bead] = 0
             local_coords = np.unravel_index(
                 bounded.argmax(),
@@ -243,21 +242,20 @@ def main(image, mask, threshold=150, bead_size=3,
     )
 
     logger.debug('subtract slide surface to get absolute bead coordinates')
-    bead_coords_abs = bead_coords.copy()
-    for i in range(bead_coords_abs.shape[0]):
+    for i in range(bead_coords.shape[0]):
         bead_height = (
-            int(bead_coords_abs[i, 2] -
+            int(bead_coords[i, 2] -
                 plane(
-                    bead_coords_abs[i, 0],
-                    bead_coords_abs[i, 1],
+                    bead_coords[i, 0],
+                    bead_coords[i, 1],
                     bottom_surface.x
             ))
         )
-        bead_coords_abs[i, 2] = bead_height if bead_height > 0 else 0
+        bead_coords[i, 2] = bead_height if bead_height > 0 else 0
 
     logger.info('interpolate cell surface')
     volume_image = interpolate_surface(
-        coords=bead_coords_abs,
+        coords=bead_coords,
         output_shape=np.shape(image[:, :, 1]),
         method='linear'
     )
