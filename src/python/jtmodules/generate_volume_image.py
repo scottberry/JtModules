@@ -160,7 +160,7 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
             # transform to global coords and add border coordinates
             try:
                 s = random.sample(set(border_isolated_coords), 100)
-            except:
+            except ValueError:
                 s = set(border_isolated_coords)
 
             filtered_coords_global += [(t[0] + x_min, t[1] + y_min, t[2]) for t in set(filtered_coords).union(s)]
@@ -291,11 +291,6 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
 
     filtered_coords_global = filter_vertices_per_cell_alpha_shape(
         coord_image_abs, mask, alpha
-    )
-
-    logger.info(
-        'After filtering coordinates' +
-        ', %d beads remain', len(filtered_coords_global)
     )
 
     logger.info('interpolate cell surface')
