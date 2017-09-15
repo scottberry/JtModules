@@ -29,12 +29,9 @@ Beads = collections.namedtuple('Beads', ['coordinates', 'coordinate_image'])
 def array_to_coordinate_list(array):
     '''Convert a 2D array representation of points in 3D
     to a list of x,y,z coordinates'''
-    points = []
-    for ix in range(array.shape[0]):
-        for iy in range(array.shape[1]):
-            if (array[ix, iy] > 0):
-                points.append((ix, iy, array[ix, iy]))
-    return points
+    nonzero = np.nonzero(array)
+    coordinates = np.vstack([np.stack(nonzero), array[nonzero]]).T
+    return list(map(tuple, coordinates))
 
 
 def subsample_coordinate_list(points, num):
@@ -218,7 +215,7 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
     if filter_type == 'log_2d':
         logger.info('using stacked 2D LoG filter to detect beads')
         f = -1 * log_2d(size=mean_size, sigma=float(mean_size - 1) / 3)
-        filt = np.stack([f for _ in range(2 * mean_size)], axis=2)
+        filt = np.stack([f for _ in range(mean_size)], axis=2)
 
     elif filter_type == 'log_3d':
         logger.info('using 3D LoG filter to detect beads')
@@ -297,7 +294,7 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
 
     logger.info('interpolate cell surface')
     volume_image = interpolate_surface(
-        coords=filtered_coords_global,
+        coords=np.asarray(filtered_coords_global, dtype=np.uint16),
         output_shape=np.shape(image[:, :, 1]),
         method='linear'
     )
