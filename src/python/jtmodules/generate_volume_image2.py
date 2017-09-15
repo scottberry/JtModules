@@ -34,6 +34,15 @@ def array_to_coordinate_list(array):
     return list(map(tuple, coordinates))
 
 
+def coordinate_list_to_array(coordinates, shape):
+    '''Convert a list of x,y,z coordinates to a 2D array
+    representation of points in 3D'''
+    image = np.zeros(shape, dtype=np.uint16)
+    for i in range(len(coordinates)):
+        image[coordinates[i][0], coordinates[i][1]] = coordinates[i][2]
+    return image
+
+
 def subsample_coordinate_list(points, num):
     subpoints = np.array(points)[np.linspace(
         start=0, stop=len(points), endpoint=False,
@@ -114,9 +123,7 @@ def localise_bead_maxima_3D(image, labeled_beads, minimum_bead_intensity):
             bead_coords.append(centre)
 
     logger.debug('convert %d bead vertices to image', len(bead_coords))
-    coord_image = np.zeros((image.shape[0], image.shape[1]), dtype=np.uint16)
-    for i in range(len(bead_coords)):
-        coord_image[bead_coords[i][0], bead_coords[i][1]] = bead_coords[i][2]
+    coord_image = coordinate_list_to_array(bead_coords, image[:,:,0].shape)
 
     return Beads(bead_coords, coord_image)
 
@@ -128,11 +135,8 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
     n_cells = np.max(mask)
     bboxes = mh.labeled.bbox(mask)
 
-    compute_alpha_shape = True
-    alpha = 1000
-
     filtered_coords_global = []
-    if compute_alpha_shape:
+    if alpha > 0:
         for cell in range(1, n_cells + 1):
             x_min, x_max, y_min, y_max = bboxes[cell]
             cell_isolated = np.copy(coord_image_abs[x_min:x_max, y_min:y_max])
@@ -252,6 +256,10 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
     slide = np.copy(localised_beads.coordinate_image)
     slide[mask > 0] = 0
 
+    # exclude beads well above slide before fitting plane
+    lim = np.percentile(slide[slide > 0], 75)
+    slide[slide > lim] = 0
+
     logger.debug('determine coordinates of slide surface')
     slide_coordinates = array_to_coordinate_list(slide)
     bottom_surface = fit_plane(subsample_coordinate_list(
@@ -277,25 +285,23 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
             )
 
     logger.debug('convert absolute bead coordinates to image')
-    coord_image_abs = np.zeros(
-        (image.shape[0], image.shape[1]), dtype=np.uint16
+    coord_image_abs = coordinate_list_to_array(
+        bead_coords_abs, image[:,:,0].shape
     )
-    for i in range(len(bead_coords_abs)):
-        coord_image_abs[bead_coords_abs[i][0], bead_coords_abs[i][1]] = bead_coords_abs[i][2]
 
-    if (alpha > 0):
-        filtered_coords_global = filter_vertices_per_cell_alpha_shape(
-            mask, coord_image_abs, alpha
-        )
+    filtered_coords_global = filter_vertices_per_cell_alpha_shape(
+        coord_image_abs, mask, alpha
+    )
+
     logger.info(
-        'After filtering coordinates, %d beads remain',
-        len(filtered_coords_global)
+        'After filtering coordinates' +
+        ', %d beads remain', len(filtered_coords_global)
     )
 
     logger.info('interpolate cell surface')
     volume_image = interpolate_surface(
         coords=np.asarray(filtered_coords_global, dtype=np.uint16),
-        output_shape=np.shape(image[:, :, 1]),
+        output_shape=np.shape(image[:, :, 0]),
         method='linear'
     )
 
