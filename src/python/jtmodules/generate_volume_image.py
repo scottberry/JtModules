@@ -34,13 +34,13 @@ def array_to_coordinate_list(array):
     return list(map(tuple, coordinates))
 
 
-def coordinate_list_to_array(coordinates, shape):
+def coordinate_list_to_array(coordinates, shape, dtype=np.uint16):
     '''Convert a list of x,y,z coordinates to a 2D array
     representation of points in 3D'''
-    image = np.zeros(shape, dtype=np.uint16)
+    image = np.zeros(shape, dtype=dtype)
     for i in range(len(coordinates)):
         image[coordinates[i][0], coordinates[i][1]] = coordinates[i][2]
-    return image
+    return image.astype(dtype=dtype)
 
 
 def subsample_coordinate_list(points, num):
@@ -171,9 +171,11 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
     return filtered_coords_global
 
 
-def main(image, mask, threshold=150, mean_size=5, min_size=10,
+def main(image, mask, threshold=150,
+         mean_size=5, min_size=10,
          filter_type='log_2d',
          minimum_bead_intensity=150,
+         z_step=0.333, pixel_size=0.1625,
          alpha=0, plot=False):
     '''Converts an image stack with labelled cell surface to a cell
     `volume` image
@@ -196,6 +198,10 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
     minimum_bead_intensity: int, optional
         minimum intensity in the original image of an identified bead
         centre. Use to filter low intensity beads.
+    z_step: float, optional
+        distance between consecutive z-planes (um) (default: ``0.333``)
+    pixel_size: float, optional
+        size of pixel (um) (default: ``0.1625``)
     alpha: float, optional
         value of parameter for 3D alpha shape calculation
         (default: ``0``, no vertex filtering performed)
@@ -270,23 +276,21 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
     bead_coords_abs = []
     for i in range(len(localised_beads.coordinates)):
         bead_height = (
-            int(
-                localised_beads.coordinates[i][2] -
-                plane(localised_beads.coordinates[i][0],
-                      localised_beads.coordinates[i][1],
-                      bottom_surface.x)
-            )
+            localised_beads.coordinates[i][2] -
+            plane(localised_beads.coordinates[i][0],
+                  localised_beads.coordinates[i][1],
+                  bottom_surface.x)
         )
         if bead_height > 0:
             bead_coords_abs.append(
                 (localised_beads.coordinates[i][0],
                  localised_beads.coordinates[i][1],
-                 bead_height)
+                 bead_height * 2.0 * z_step / pixel_size)
             )
 
     logger.debug('convert absolute bead coordinates to image')
     coord_image_abs = coordinate_list_to_array(
-        bead_coords_abs, image[:,:,0].shape
+        bead_coords_abs, shape=image[:,:,0].shape, dtype=np.float32
     )
 
     filtered_coords_global = filter_vertices_per_cell_alpha_shape(
@@ -307,7 +311,7 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
 
     if plot:
         logger.debug('convert bottom surface plane to image for plotting')
-        bottom_surface_image = np.zeros(slide.shape, dtype=np.uint8)
+        bottom_surface_image = np.zeros(slide.shape, dtype=np.float32)
         for ix in range(slide.shape[0]):
             for iy in range(slide.shape[1]):
                 bottom_surface_image[ix, iy] = plane(
@@ -319,7 +323,7 @@ def main(image, mask, threshold=150, mean_size=5, min_size=10,
             plotting.create_intensity_overlay_image_plot(
                 np.max(image, axis=2), outlines, 'ul', clip=True
             ),
-            plotting.create_intensity_image_plot(
+            plotting.create_float_image_plot(
                 bottom_surface_image, 'll', clip=True
             ),
             plotting.create_intensity_image_plot(
