@@ -317,12 +317,11 @@ def main(image, mask, threshold=25,
             for iy in range(slide.shape[1]):
                 bottom_surface_image[ix, iy] = plane(
                     ix, iy, bottom_surface.x)
-        outlines = mh.labeled.bwperim(np.max(labeled_beads, axis=2) > 0)
         logger.info('create plot')
         from jtlib import plotting
         plots = [
-            plotting.create_intensity_overlay_image_plot(
-                np.max(image, axis=2), outlines, 'ul', clip=True
+            plotting.create_intensity_image_plot(
+                np.max(image, axis=-1), 'ul', clip=True
             ),
             plotting.create_float_image_plot(
                 bottom_surface_image, 'll', clip=True
