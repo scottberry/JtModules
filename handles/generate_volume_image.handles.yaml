@@ -1,5 +1,5 @@
 ---
-version: 0.1.0
+version: 0.2.0
 
 input:
 
@@ -23,15 +23,44 @@ input:
 
   - name: bead_size
     type: Numeric
-    value: 2
+    value: 3
     help: >
-      Bead size in pixels (passed to detect_blobs)
+      Bead size in pixels
 
-  - name: superpixel_size
+  - name: filter_type
+    type: Character
+    value: log_2d
+    options:
+      - log_2d
+      - log_3d
+    help: Filter to be applied to emphasise beads for detection.
+
+  - name: bead_localisation
+    type: Character
+    value: max
+    options:
+      - max
+      - centroid
+    help: Method to determine 3D coordinates of bead centre.
+
+  - name: minimum_bead_intensity
+    type: Numeric
+    value: 150
+    help: >
+      Minimum intensity of an identified bead centre (only applied for
+      bead_localisation = max)
+
+  - name: outlier_detection
+    type: Boolean
+    value: true
+    help: >
+      Whether spatial outlier beads should be removed.
+
+  - name: outlier_tolerance
     type: Numeric
     value: 4
     help: >
-      Size of superpixels for searching the 3D position of a bead.
+      Maximum number of z-steps between neighboring beads
 
   - name: close_surface
     type: Boolean
