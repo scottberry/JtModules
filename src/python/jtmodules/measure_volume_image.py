@@ -107,7 +107,7 @@ class Morphology3D(jtlib.features.Features):
             # Calculate region properties and upper surface area
             region = self.object_properties[obj]
             lower_surface_area = region.area * self.pixel_size * self.pixel_size
-            if compute_surface_area:
+            if self.compute_surface_area:
                 upper_surface_area = self.upper_surface_area(img_nan)
             else:
                 upper_surface_area = np.nan
