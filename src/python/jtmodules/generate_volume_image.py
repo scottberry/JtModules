@@ -171,8 +171,8 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
     return filtered_coords_global
 
 
-def main(image, mask, threshold=150,
-         mean_size=5, min_size=10,
+def main(image, mask, threshold=25,
+         mean_size=6, min_size=10,
          filter_type='log_2d',
          minimum_bead_intensity=150,
          z_step=0.333, pixel_size=0.1625,
@@ -187,9 +187,9 @@ def main(image, mask, threshold=150,
     mask: numpy.ndarray[Union[numpy.int32, numpy.bool]]
         binary or labeled image of cell segmentation (2D)
     threshold: int, optional
-        intensity of bead (default: ``150``)
+        intensity of bead in filtered image (default: ``25``)
     mean_size: int, optional
-        mean size of bead (default: ``5``)
+        mean size of bead (default: ``6``)
     min_size: int, optional
         minimal number of connected voxels per bead (default: ``10``)
     filter_type: str, optional
@@ -311,7 +311,8 @@ def main(image, mask, threshold=150,
 
     if plot:
         logger.debug('convert bottom surface plane to image for plotting')
-        bottom_surface_image = np.zeros(slide.shape, dtype=np.float32)
+        dt = np.dtype(float)
+        bottom_surface_image = np.zeros(slide.shape, dtype=dt)
         for ix in range(slide.shape[0]):
             for iy in range(slide.shape[1]):
                 bottom_surface_image[ix, iy] = plane(
