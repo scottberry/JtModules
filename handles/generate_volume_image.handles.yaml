@@ -1,5 +1,5 @@
 ---
-version: 0.2.0
+version: 0.3.0
 
 input:
 
@@ -13,19 +13,25 @@ input:
     type: LabelImage
     key:
     help: >
-      Binary or labeled image of cell segmentation (2D).
+      Labeled image of cell segmentation (2D).
 
   - name: threshold
     type: Numeric
-    value: 150
+    value: 30
     help: >
       Threshold for detection of bead intensity.
 
-  - name: bead_size
+  - name: mean_size
     type: Numeric
-    value: 3
+    value: 6
     help: >
-      Bead size in pixels
+      Bead size in pixels, specifies the width of the filter kernel.
+
+  - name: min_size
+    type: Numeric
+    value: 10
+    help: >
+      Minimal number of connected voxels per bead.
 
   - name: filter_type
     type: Character
@@ -35,44 +41,31 @@ input:
       - log_3d
     help: Filter to be applied to emphasise beads for detection.
 
-  - name: bead_localisation
-    type: Character
-    value: max
-    options:
-      - max
-      - centroid
-    help: Method to determine 3D coordinates of bead centre.
-
   - name: minimum_bead_intensity
     type: Numeric
-    value: 150
+    value: 140
     help: >
       Minimum intensity of an identified bead centre (only applied for
       bead_localisation = max)
 
-  - name: outlier_detection
-    type: Boolean
-    value: true
+  - name: pixel_size
+    type: Scalar
+    value: 0.1625
     help: >
-      Whether spatial outlier beads should be removed.
+      x-y dimension of pixel (micrometres).
 
-  - name: outlier_tolerance
+  - name: z_step
+    type: Scalar
+    value: 0.333
+    help: >
+      Distance between consecutive z-planes (micrometres).
+
+  - name: alpha
     type: Numeric
-    value: 4
+    value: 0
     help: >
-      Maximum number of z-steps between neighboring beads
-
-  - name: close_surface
-    type: Boolean
-    value: false
-    help: >
-      Whether the interpolated surface should be morphologically closed.
-
-  - name: close_disc_size
-    type: Numeric
-    value: 8
-    help: >
-      Size in pixels of the disc used to morphologically close the interpolated surface
+      value of parameter for 3D alpha shape calculation
+        (default: ``0``, no vertex filtering performed)
 
   - name: plot
     type: Plot
