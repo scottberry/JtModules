@@ -146,8 +146,12 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
             label_image_isolated[label_image_isolated != cell] = 0
             border_isolated = mh.labeled.bwperim(label_image_isolated, n=4)
 
-            cell_isolated_coords = array_to_coordinate_list(cell_isolated)
-            border_isolated_coords = array_to_coordinate_list(border_isolated.  astype(np.uint16))
+            cell_isolated_coords = array_to_coordinate_list(
+                cell_isolated
+            )
+            border_isolated_coords = array_to_coordinate_list(
+                border_isolated.  astype(np.uint16)
+            )
 
             # get coordinates from cell surface
             all_coords_local = cell_isolated_coords + border_isolated_coords
@@ -213,103 +217,114 @@ def main(image, mask, threshold=25,
     jtmodules.generate_volume_image.Output
     '''
 
-    n_slices = image.shape[-1]
-    logger.debug('input image has z-dimension %d', n_slices)
+    # Check that there are cells identified in image
+    if (np.max(mask) > 0):
+        volume_image_calculated = True
 
-    # Remove high intensity pixels
-    detect_image = image.copy()
-    p = np.percentile(detect_image, 99.9)
-    detect_image[detect_image > p] = p
+        n_slices = image.shape[-1]
+        logger.debug('input image has z-dimension %d', n_slices)
 
-    # Perform LoG filtering in 3D to emphasise beads
-    if filter_type == 'log_2d':
-        logger.info('using stacked 2D LoG filter to detect beads')
-        f = -1 * log_2d(size=mean_size, sigma=float(mean_size - 1) / 3)
-        filt = np.stack([f for _ in range(mean_size)], axis=2)
+        # Remove high intensity pixels
+        detect_image = image.copy()
+        p = np.percentile(detect_image, 99.9)
+        detect_image[detect_image > p] = p
 
-    elif filter_type == 'log_3d':
-        logger.info('using 3D LoG filter to detect beads')
-        filt = -1 * log_3d(mean_size, (float(mean_size - 1) / 3,
-                                       float(mean_size - 1) / 3,
-                                       4 * float(mean_size - 1) / 3))
-    else:
-        logger.info('using unfiltered image to detect beads')
+        # Perform LoG filtering in 3D to emphasise beads
+        if filter_type == 'log_2d':
+            logger.info('using stacked 2D LoG filter to detect beads')
+            f = -1 * log_2d(size=mean_size, sigma=float(mean_size - 1) / 3)
+            filt = np.stack([f for _ in range(mean_size)], axis=2)
 
-    if filter_type == 'log_2d' or filter_type == 'log_3d':
-        logger.debug('convolve image with filter kernel')
-        detect_image = mh.convolve(detect_image.astype(float), filt)
-        detect_image[detect_image < 0] = 0
+        elif filter_type == 'log_3d':
+            logger.info('using 3D LoG filter to detect beads')
+            filt = -1 * log_3d(mean_size, (float(mean_size - 1) / 3,
+                                           float(mean_size - 1) / 3,
+                                           4 * float(mean_size - 1) / 3))
+        else:
+            logger.info('using unfiltered image to detect beads')
 
-    logger.debug('threshold beads')
-    labeled_beads, n_labels = mh.label(detect_image > threshold)
-    logger.info('detected %d beads', n_labels)
+        if filter_type == 'log_2d' or filter_type == 'log_3d':
+            logger.debug('convolve image with filter kernel')
+            detect_image = mh.convolve(detect_image.astype(float), filt)
+            detect_image[detect_image < 0] = 0
 
-    logger.debug('remove small beads')
-    sizes = mh.labeled.labeled_size(labeled_beads)
-    too_small = np.where(sizes < min_size)
-    labeled_beads = mh.labeled.remove_regions(labeled_beads, too_small)
-    mh.labeled.relabel(labeled_beads, inplace=True)
-    logger.info(
-        '%d beads remain after removing small beads', np.max(labeled_beads)
-    )
+        logger.debug('threshold beads')
+        labeled_beads, n_labels = mh.label(detect_image > threshold)
+        logger.info('detected %d beads', n_labels)
 
-    logger.debug('localise beads in 3D')
-    localised_beads = localise_bead_maxima_3D(
-        image, labeled_beads, minimum_bead_intensity
-    )
-
-    logger.debug('mask beads inside cells')
-    slide = np.copy(localised_beads.coordinate_image)
-    slide[mask > 0] = 0
-
-    # exclude beads well above slide before fitting plane
-    lim = np.percentile(slide[slide > 0], 75)
-    slide[slide > lim] = 0
-
-    logger.debug('determine coordinates of slide surface')
-    slide_coordinates = array_to_coordinate_list(slide)
-    bottom_surface = fit_plane(subsample_coordinate_list(
-        slide_coordinates, 2000)
-    )
-
-    logger.debug('subtract slide surface to get absolute bead coordinates')
-    bead_coords_abs = []
-    for i in range(len(localised_beads.coordinates)):
-        bead_height = (
-            localised_beads.coordinates[i][2] -
-            plane(localised_beads.coordinates[i][0],
-                  localised_beads.coordinates[i][1],
-                  bottom_surface.x)
+        logger.debug('remove small beads')
+        sizes = mh.labeled.labeled_size(labeled_beads)
+        too_small = np.where(sizes < min_size)
+        labeled_beads = mh.labeled.remove_regions(labeled_beads, too_small)
+        mh.labeled.relabel(labeled_beads, inplace=True)
+        logger.info(
+            '%d beads remain after removing small beads', np.max(labeled_beads)
         )
-        if bead_height > 0:
-            bead_coords_abs.append(
-                (localised_beads.coordinates[i][0],
-                 localised_beads.coordinates[i][1],
-                 bead_height * 2.0 * z_step / pixel_size)
+
+        logger.debug('localise beads in 3D')
+        localised_beads = localise_bead_maxima_3D(
+            image, labeled_beads, minimum_bead_intensity
+        )
+
+        logger.debug('mask beads inside cells')
+        slide = np.copy(localised_beads.coordinate_image)
+        slide[mask > 0] = 0
+
+        # exclude beads well above slide before fitting plane
+        lim = np.percentile(slide[slide > 0], 75)
+        slide[slide > lim] = 0
+
+        logger.debug('determine coordinates of slide surface')
+        slide_coordinates = array_to_coordinate_list(slide)
+        bottom_surface = fit_plane(subsample_coordinate_list(
+            slide_coordinates, 2000)
+        )
+
+        logger.debug('subtract slide surface to get absolute bead coordinates')
+        bead_coords_abs = []
+        for i in range(len(localised_beads.coordinates)):
+            bead_height = (
+                localised_beads.coordinates[i][2] -
+                plane(localised_beads.coordinates[i][0],
+                      localised_beads.coordinates[i][1],
+                      bottom_surface.x)
             )
+            if bead_height > 0:
+                bead_coords_abs.append(
+                    (localised_beads.coordinates[i][0],
+                     localised_beads.coordinates[i][1],
+                     bead_height * 2.0 * z_step / pixel_size)
+                )
 
-    logger.debug('convert absolute bead coordinates to image')
-    coord_image_abs = coordinate_list_to_array(
-        bead_coords_abs, shape=image[:,:,0].shape, dtype=np.float32
-    )
+        logger.debug('convert absolute bead coordinates to image')
+        coord_image_abs = coordinate_list_to_array(
+            bead_coords_abs, shape=image[:, :, 0].shape, dtype=np.float32
+        )
 
-    filtered_coords_global = filter_vertices_per_cell_alpha_shape(
-        coord_image_abs, mask, alpha
-    )
+        filtered_coords_global = filter_vertices_per_cell_alpha_shape(
+            coord_image_abs, mask, alpha
+        )
 
-    logger.info('interpolate cell surface')
-    volume_image = interpolate_surface(
-        coords=np.asarray(filtered_coords_global, dtype=np.uint16),
-        output_shape=np.shape(image[:, :, 0]),
-        method='linear'
-    )
+        logger.info('interpolate cell surface')
+        volume_image = interpolate_surface(
+            coords=np.asarray(filtered_coords_global, dtype=np.uint16),
+            output_shape=np.shape(image[:, :, 0]),
+            method='linear'
+        )
 
-    volume_image = volume_image.astype(image.dtype)
+        volume_image = volume_image.astype(image.dtype)
 
-    logger.debug('set regions outside mask to zero')
-    volume_image[mask == 0] = 0
+        logger.debug('set regions outside mask to zero')
+        volume_image[mask == 0] = 0
 
-    if plot:
+    else:
+        logger.warn(
+            'no objects in input mask, skipping cell volume calculation.'
+        )
+        volume_image_calculated = False
+        volume_image = np.zeros(shape=image[:, :, 0].shape, dtype=image.dtype)
+
+    if (plot and volume_image_calculated):
         logger.debug('convert bottom surface plane to image for plotting')
         dt = np.dtype(float)
         bottom_surface_image = np.zeros(slide.shape, dtype=dt)
