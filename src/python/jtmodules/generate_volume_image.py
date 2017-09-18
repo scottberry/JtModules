@@ -128,12 +128,19 @@ def localise_bead_maxima_3D(image, labeled_beads, minimum_bead_intensity):
     return Beads(bead_coords, coord_image)
 
 
-def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
+def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha, z_step, pixel_size):
     import alpha_shape
     import random
 
     n_cells = np.max(mask)
     bboxes = mh.labeled.bbox(mask)
+    conversion_factor = 2.0 * z_step / pixel_size
+
+    def z_steps_to_abs(z):
+        return float(conversion_factor * z)
+
+    def abs_to_z_steps(z):
+        return int(round(z / conversion_factor))
 
     filtered_coords_global = []
     if alpha > 0:
@@ -150,16 +157,22 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha):
                 cell_isolated
             )
             border_isolated_coords = array_to_coordinate_list(
-                border_isolated.  astype(np.uint16)
+                border_isolated.astype(np.float32)
             )
 
             # get coordinates from cell surface
             all_coords_local = cell_isolated_coords + border_isolated_coords
 
+            # convert to absolute positions for z-coordinate
+            all_coords_local = [(x, y, z_steps_to_abs(z)) for (x, y, z) in all_coords_local]
+
             # filter vertices based on alpha_shape
             filtered_coords = alpha_shape.filter_vertices(
                 all_coords_local, alpha
             )
+
+            # convert back from absolute positions to integer number of z-steps
+            filtered_coords = [(x, y, abs_to_z_steps(z)) for (x, y, z) in filtered_coords]
 
             # transform to global coords and add border coordinates
             try:
@@ -293,22 +306,26 @@ def main(image, mask, threshold=25,
                 bead_coords_abs.append(
                     (localised_beads.coordinates[i][0],
                      localised_beads.coordinates[i][1],
-                     bead_height * 2.0 * z_step / pixel_size)
+                     bead_height)
                 )
 
         logger.debug('convert absolute bead coordinates to image')
         coord_image_abs = coordinate_list_to_array(
-            bead_coords_abs, shape=image[:, :, 0].shape, dtype=np.float32
+            bead_coords_abs, shape=image[:,:,0].shape, dtype=np.float32
         )
 
         filtered_coords_global = filter_vertices_per_cell_alpha_shape(
-            coord_image_abs, mask, alpha
+            coord_image_abs=coord_image_abs,
+            mask=mask,
+            alpha=alpha,
+            z_step=z_step,
+            pixel_size=pixel_size
         )
 
         logger.info('interpolate cell surface')
         volume_image = interpolate_surface(
             coords=np.asarray(filtered_coords_global, dtype=np.uint16),
-            output_shape=np.shape(image[:, :, 0]),
+            output_shape=np.shape(image[:,:,0]),
             method='linear'
         )
 
