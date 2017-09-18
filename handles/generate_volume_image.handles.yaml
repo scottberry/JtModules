@@ -19,7 +19,7 @@ input:
     type: Numeric
     value: 30
     help: >
-      Threshold for detection of bead intensity.
+      Threshold for detection of bead intensity (after filtering).
 
   - name: mean_size
     type: Numeric
@@ -45,8 +45,8 @@ input:
     type: Numeric
     value: 140
     help: >
-      Minimum intensity of an identified bead centre (only applied for
-      bead_localisation = max)
+      Threshold for identified bead maxima, beads with maximal
+      intensity below this value will be discarded.
 
   - name: pixel_size
     type: Scalar
@@ -65,7 +65,7 @@ input:
     value: 0
     help: >
       value of parameter for 3D alpha shape calculation
-        (default: ``0``, no vertex filtering performed)
+        (default: 0, no vertex filtering performed)
 
   - name: plot
     type: Plot
@@ -78,12 +78,12 @@ output:
     type: IntensityImage
     key: generate_volume_image.volume_image
     help: >
-      Image in which intensity represents the height (in z-slices)
-      above the surface of the slide each point is.
+      Intensity image in which pixel values represent the surface
+      height (in z-slices) above the slide.
 
   - name: figure
     type: Figure
     help: >
-      "Maximum intensity projection" of beads and computed "slide
-      surface". Also shows final volume image"
+      "Maximum intensity projection" of beads, computed "slide
+      surface", and final volume image"
 
