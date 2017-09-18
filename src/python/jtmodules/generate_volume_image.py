@@ -73,7 +73,7 @@ def fit_plane(points):
     import functools
 
     fun = functools.partial(squared_error, points=points)
-    params0 = [0, 0, 0]
+    params0 = [0.0, 0.0, 0.0]
     return scipy.optimize.minimize(fun, params0)
 
 
@@ -280,7 +280,11 @@ def main(image, mask, threshold=25,
         )
 
         logger.debug('mask beads inside cells')
-        slide = np.copy(localised_beads.coordinate_image)
+        '''NOTE: localised_beads.coordinate image is used only for beads
+        outside cells and can therefore be modified here. For beads
+        inside cells, localised_beads.coordinates are used instead.
+        '''
+        slide = localised_beads.coordinate_image
         slide[mask > 0] = 0
 
         # exclude beads well above slide before fitting plane
