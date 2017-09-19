@@ -18,39 +18,51 @@ import collections
 import mahotas as mh
 import numpy as np
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 
 logger = logging.getLogger(__name__)
 
 Output = collections.namedtuple('Output', ['masked_image', 'figure'])
 
 
-def main(objects, mask, plot=False):
+def main(image, mask, plot=False, plot_type='objects'):
 
-    mask_objects = np.copy(objects)
-    mask_objects[mask == 0] = 0
+    mask_image = np.copy(image)
+    mask_image[mask == 0] = 0
 
     if plot:
         logger.info('create plot')
         from jtlib import plotting
-        colorscale = plotting.create_colorscale(
-            'Spectral', n=objects.max(), permute=True, add_background=True
-        )
-        data = [
-            plotting.create_mask_image_plot(
-                mask, 'ul', colorscale=colorscale
-            ),
-            plotting.create_mask_image_plot(
-                mask_objects, 'ur', colorscale=colorscale
+        if plot_type == 'objects':
+            colorscale = plotting.create_colorscale(
+                'Spectral', n=image.max(), permute=True, add_background=True
             )
-        ]
-        figure = plotting.create_figure(
-            data,
-            title='Masked image with "{0}" objects'.format(
-                objects.max()
+            data = [
+                plotting.create_mask_image_plot(
+                    mask, 'ul', colorscale=colorscale
+                ),
+                plotting.create_mask_image_plot(
+                    mask_image, 'ur', colorscale=colorscale
+                )
+            ]
+            figure = plotting.create_figure(
+                data,
+                title='Masked label image'
             )
-        )
+        elif plot_type == 'intensity':
+            data = [
+                plotting.create_mask_image_plot(
+                    mask, 'ul'
+                ),
+                plotting.create_intensity_image_plot(
+                    mask_image, 'ur'
+                )
+            ]
+            figure = plotting.create_figure(
+                data,
+                title='Masked intensity image'
+            )
     else:
         figure = str()
 
-    return Output(mask_objects, figure)
+    return Output(mask_image, figure)
