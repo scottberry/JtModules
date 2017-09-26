@@ -26,6 +26,11 @@ Output = collections.namedtuple('Output', ['volume_image', 'figure'])
 Beads = collections.namedtuple('Beads', ['coordinates', 'coordinate_image'])
 
 
+class InvalidSlideError(ValueError):
+    '''Raised when the slide surface is computed from a biased
+    set of points'''
+
+
 def array_to_coordinate_list(array, offset=[0,0]):
     '''Convert a 2D array representation of points in 3D
     to a list of x,y,z coordinates'''
@@ -62,13 +67,14 @@ def plane(x, y, params):
     z = (a * x) + (b * y) + c
     return z
 
+
 def slide_surface_params(slide):
     '''Determine the parameters (a,b,c) for the equation of the slide
     surface in 3D (z = ax + bx + c), given a coordinate image of the
     slide'''
 
     # Sample evenly from image quadrants
-    m, n = np.floor(slide.shape / 2.0)
+    m, n = np.floor(np.array(slide.shape) / 2.0).astype(np.int)
     ul, ur = slide[:m,:n], slide[m:,:n]
     ll, lr = slide[:m,n:], slide[m:,n:]
 
@@ -77,7 +83,7 @@ def slide_surface_params(slide):
     ll_coords = array_to_coordinate_list(ll, offset=[0,n])
     lr_coords = array_to_coordinate_list(lr, offset=[m,n])
 
-    lim = 100
+    lim = 200
     ul_n = len(ul_coords)
     ur_n = len(ur_coords)
     ll_n = len(ll_coords)
@@ -89,9 +95,8 @@ def slide_surface_params(slide):
         (ul_n < lim and ll_n < lim and lr_n < lim) or
         (ul_n < lim and ur_n < lim and lr_n < lim) or
         (ul_n < lim and ur_n < lim and ll_n < lim)):
-        logger.warn('slide surface determined primarily from' +
-                    'one quadrant.')
-        raise ValueError
+        raise InvalidSlideError('slide surface determined primarily' +
+                                ' from one quadrant.')
 
     if ul_n < lim or ur_n < lim or ll_n < lim or lr_n < lim:
         logger.warn('one or more quadrants has < %d' +
@@ -102,11 +107,10 @@ def slide_surface_params(slide):
                     ' lower-right = %d',
                     lim, ul_n, ur_n, ll_n, lr_n)
 
-    coordinates = []
-    coordinates.append(subsample_coordinate_list(ul_coords), 500)
-    coordinates.append(subsample_coordinate_list(ur_coords), 500)
-    coordinates.append(subsample_coordinate_list(ll_coords), 500)
-    coordinates.append(subsample_coordinate_list(lr_coords), 500)
+    coordinates = (subsample_coordinate_list(ul_coords, 500) +
+                   subsample_coordinate_list(ur_coords, 500) +
+                   subsample_coordinate_list(ll_coords, 500) +
+                   subsample_coordinate_list(lr_coords, 500))
 
     surface = fit_plane(coordinates)
     return surface
@@ -354,7 +358,7 @@ def main(image, mask, threshold=25,
         logger.debug('determine coordinates of slide surface')
         try:
             bottom_surface = slide_surface_params(slide)
-        except ValueError:
+        except InvalidSlideError:
             logger.error('slide surface calculation is invalid' +
                          'returning empty volume image')
             volume_image = np.zeros(shape=image[:,:,0].shape,
