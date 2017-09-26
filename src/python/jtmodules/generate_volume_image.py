@@ -26,11 +26,14 @@ Output = collections.namedtuple('Output', ['volume_image', 'figure'])
 Beads = collections.namedtuple('Beads', ['coordinates', 'coordinate_image'])
 
 
-def array_to_coordinate_list(array):
+def array_to_coordinate_list(array, offset=[0,0]):
     '''Convert a 2D array representation of points in 3D
     to a list of x,y,z coordinates'''
     nonzero = np.nonzero(array)
-    coordinates = np.vstack([np.stack(nonzero), array[nonzero]]).T
+    coordinates = np.vstack([
+        np.stack([nonzero[0] + offset[0], nonzero[1] + offset[1]]),
+        array[nonzero]
+    ]).T
     return list(map(tuple, coordinates))
 
 
@@ -44,9 +47,12 @@ def coordinate_list_to_array(coordinates, shape, dtype=np.uint16):
 
 
 def subsample_coordinate_list(points, num):
-    subpoints = np.array(points)[np.linspace(
-        start=0, stop=len(points), endpoint=False,
-        num=num, dtype=np.uint32)]
+    if len(points) > num:
+        subpoints = np.array(points)[np.linspace(
+            start=0, stop=len(points), endpoint=False,
+            num=num, dtype=np.uint32)]
+    else:
+        subpoints = points
     return list(map(tuple, subpoints))
 
 
@@ -55,6 +61,54 @@ def plane(x, y, params):
     a, b, c = params
     z = (a * x) + (b * y) + c
     return z
+
+def slide_surface_params(slide):
+    '''Determine the parameters (a,b,c) for the equation of the slide
+    surface in 3D (z = ax + bx + c), given a coordinate image of the
+    slide'''
+
+    # Sample evenly from image quadrants
+    m, n = np.floor(slide.shape / 2.0)
+    ul, ur = slide[:m,:n], slide[m:,:n]
+    ll, lr = slide[:m,n:], slide[m:,n:]
+
+    ul_coords = array_to_coordinate_list(ul, offset=[0,0])
+    ur_coords = array_to_coordinate_list(ur, offset=[m,0])
+    ll_coords = array_to_coordinate_list(ll, offset=[0,n])
+    lr_coords = array_to_coordinate_list(lr, offset=[m,n])
+
+    lim = 100
+    ul_n = len(ul_coords)
+    ur_n = len(ur_coords)
+    ll_n = len(ll_coords)
+    lr_n = len(lr_coords)
+
+    if ((ur_n < lim and ll_n < lim and lr_n < lim) or
+        (ul_n < lim and ll_n < lim and lr_n < lim) or
+        (ul_n < lim and ur_n < lim and lr_n < lim) or
+        (ul_n < lim and ur_n < lim and ll_n < lim)):
+        logger.warn('slide surface determined primarily from' +
+                    'one quadrant.')
+        raise ValueError
+
+    else:
+        if ul_n < lim or ur_n < lim or ll_n < lim or lr_n < lim:
+            logger.warn('one or more quadrants has < %d' +
+                        'points on slide surface,' +
+                        ' upper-left = %d,' +
+                        ' upper-right = %d,' +
+                        ' lower-left = %d,' +
+                        ' lower-right = %d',
+                        lim, ul_n, ur_n, ll_n, lr_n)
+
+        coordinates = []
+        coordinates.append(subsample_coordinate_list(ul_coords), 500)
+        coordinates.append(subsample_coordinate_list(ur_coords), 500)
+        coordinates.append(subsample_coordinate_list(ll_coords), 500)
+        coordinates.append(subsample_coordinate_list(lr_coords), 500)
+
+        surface = fit_plane(coordinates)
+        return surface
 
 
 def squared_error(params, points):
@@ -284,18 +338,20 @@ def main(image, mask, threshold=25,
         outside cells and can therefore be modified here. For beads
         inside cells, localised_beads.coordinates are used instead.
         '''
+        # expand mask to ensure slide-beads are well away from cells
         slide = localised_beads.coordinate_image
-        slide[mask > 0] = 0
+        expand_mask = mh.dilate(
+            A=mask > 0,
+            Bc=np.ones([25,25], bool)
+        )
+        slide[expand_mask] = 0
 
         # exclude beads well above slide before fitting plane
         lim = np.percentile(slide[slide > 0], 75)
         slide[slide > lim] = 0
 
         logger.debug('determine coordinates of slide surface')
-        slide_coordinates = array_to_coordinate_list(slide)
-        bottom_surface = fit_plane(subsample_coordinate_list(
-            slide_coordinates, 2000)
-        )
+        bottom_surface = slide_surface_params(slide)
 
         logger.debug('subtract slide surface to get absolute bead coordinates')
         bead_coords_abs = []
