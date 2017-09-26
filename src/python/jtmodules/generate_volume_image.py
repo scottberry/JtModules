@@ -360,7 +360,7 @@ def main(image, mask, threshold=25,
             bottom_surface = slide_surface_params(slide)
         except InvalidSlideError:
             logger.error('slide surface calculation is invalid' +
-                         'returning empty volume image')
+                         ' returning empty volume image')
             volume_image = np.zeros(shape=image[:,:,0].shape,
                                     dtype=image.dtype)
             figure = str()
