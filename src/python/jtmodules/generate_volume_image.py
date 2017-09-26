@@ -83,6 +83,8 @@ def slide_surface_params(slide):
     ll_n = len(ll_coords)
     lr_n = len(lr_coords)
 
+    logger.debug('number of beads on slide surface in each quadrant' +
+                 'is %d, %d, %d, %d', ul_n, ur_n, ll_n, lr_n)
     if ((ur_n < lim and ll_n < lim and lr_n < lim) or
         (ul_n < lim and ll_n < lim and lr_n < lim) or
         (ul_n < lim and ur_n < lim and lr_n < lim) or
@@ -91,24 +93,23 @@ def slide_surface_params(slide):
                     'one quadrant.')
         raise ValueError
 
-    else:
-        if ul_n < lim or ur_n < lim or ll_n < lim or lr_n < lim:
-            logger.warn('one or more quadrants has < %d' +
-                        'points on slide surface,' +
-                        ' upper-left = %d,' +
-                        ' upper-right = %d,' +
-                        ' lower-left = %d,' +
-                        ' lower-right = %d',
-                        lim, ul_n, ur_n, ll_n, lr_n)
+    if ul_n < lim or ur_n < lim or ll_n < lim or lr_n < lim:
+        logger.warn('one or more quadrants has < %d' +
+                    'points on slide surface,' +
+                    ' upper-left = %d,' +
+                    ' upper-right = %d,' +
+                    ' lower-left = %d,' +
+                    ' lower-right = %d',
+                    lim, ul_n, ur_n, ll_n, lr_n)
 
-        coordinates = []
-        coordinates.append(subsample_coordinate_list(ul_coords), 500)
-        coordinates.append(subsample_coordinate_list(ur_coords), 500)
-        coordinates.append(subsample_coordinate_list(ll_coords), 500)
-        coordinates.append(subsample_coordinate_list(lr_coords), 500)
+    coordinates = []
+    coordinates.append(subsample_coordinate_list(ul_coords), 500)
+    coordinates.append(subsample_coordinate_list(ur_coords), 500)
+    coordinates.append(subsample_coordinate_list(ll_coords), 500)
+    coordinates.append(subsample_coordinate_list(lr_coords), 500)
 
-        surface = fit_plane(coordinates)
-        return surface
+    surface = fit_plane(coordinates)
+    return surface
 
 
 def squared_error(params, points):
@@ -351,7 +352,15 @@ def main(image, mask, threshold=25,
         slide[slide > lim] = 0
 
         logger.debug('determine coordinates of slide surface')
-        bottom_surface = slide_surface_params(slide)
+        try:
+            bottom_surface = slide_surface_params(slide)
+        except ValueError:
+            logger.error('slide surface calculation is invalid' +
+                         'returning empty volume image')
+            volume_image = np.zeros(shape=image[:,:,0].shape,
+                                    dtype=image.dtype)
+            figure = str()
+            return Output(volume_image, figure)
 
         logger.debug('subtract slide surface to get absolute bead coordinates')
         bead_coords_abs = []
@@ -399,7 +408,7 @@ def main(image, mask, threshold=25,
             'no objects in input mask, skipping cell volume calculation.'
         )
         volume_image_calculated = False
-        volume_image = np.zeros(shape=image[:, :, 0].shape, dtype=image.dtype)
+        volume_image = np.zeros(shape=image[:,:,0].shape, dtype=image.dtype)
 
     if (plot and volume_image_calculated):
         logger.debug('convert bottom surface plane to image for plotting')
