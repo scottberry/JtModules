@@ -219,8 +219,11 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha, z_step, p
                 border_isolated.astype(np.float32)
             )
 
+            # set border coordinates to zero-height.
+            border_isolated_coords_zeroed = [(x, y, 0.0) for (x,y,z) in border_isolated_coords]
+
             # get coordinates from cell surface
-            all_coords_local = cell_isolated_coords + border_isolated_coords
+            all_coords_local = cell_isolated_coords + border_isolated_coords_zeroed
 
             # convert to absolute positions for z-coordinate
             all_coords_local = [(x, y, z_steps_to_abs(z)) for (x, y, z) in all_coords_local]
@@ -235,9 +238,9 @@ def filter_vertices_per_cell_alpha_shape(coord_image_abs, mask, alpha, z_step, p
 
             # transform to global coords and add border coordinates
             try:
-                s = random.sample(set(border_isolated_coords), 100)
+                s = random.sample(set(border_isolated_coords_zeroed), 100)
             except ValueError:
-                s = set(border_isolated_coords)
+                s = set(border_isolated_coords_zeroed)
 
             filtered_coords_global += [(t[0] + x_min, t[1] + y_min, t[2]) for t in set(filtered_coords).union(s)]
 
@@ -350,10 +353,6 @@ def main(image, mask, threshold=25,
             Bc=np.ones([25,25], bool)
         )
         slide[expand_mask] = 0
-
-        # exclude beads well above slide before fitting plane
-        lim = np.percentile(slide[slide > 0], 75)
-        slide[slide > lim] = 0
 
         logger.debug('determine coordinates of slide surface')
         try:
